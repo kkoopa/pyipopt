@@ -12,7 +12,7 @@
 # for my linux distribution was buggy,
 # so by the time you read this the bugs have probably been fixed
 # and you will want to specify a different directory here.
-IPOPT_DIR = '/usr/local/'
+IPOPT_DIR = '/home/kkoopa/dev/Ipopt-3.11.6/build'
 
 import os
 from distutils.core import setup
@@ -46,10 +46,11 @@ pyipopt_extension = Extension(
         'pyipoptcore',
         FILES,
         #extra_link_args=['-Wl,--rpath','-Wl,'+ IPOPT_LIB],
+        extra_link_args=['-lstdc++'],
         library_dirs=[IPOPT_LIB],
         libraries=[
             'ipopt', 'blas',
-            #'coinhsl',
+            'coinhsl',
             'coinmumps',
             'coinmetis',
             'lapack','dl','m',

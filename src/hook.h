@@ -1,10 +1,10 @@
 //  Author: Eric Xu
 //  Licensed under BSD
-
-#include "Python.h"
-#include "IpStdCInterface.h"
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <Python.h>
+#include <IpStdCInterface.h>
 #include <stdio.h>
-#include "numpy/arrayobject.h"
+#include <numpy/arrayobject.h>
 
 #ifndef PY_IPOPT_HOOK_
 #define PY_IPOPT_HOOK_
@@ -49,7 +49,7 @@ typedef struct {
 	PyObject *userdata;
 } DispatchData;
 
-PyObject *problem_getattr(PyObject * self, char *attrname);
+/*PyObject *problem_getattr(PyObject * self, char *attrname);*/
 
 /* Logging */
 #define VERBOSE 2
@@ -66,3 +66,4 @@ typedef struct {
 } problem;
 
 #endif				//  PY_IPOPT_HOOK_
+

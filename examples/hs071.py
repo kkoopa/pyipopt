@@ -93,18 +93,18 @@ x0 = array([1.0, 5.0, 5.0, 1.0])
 pi0 = array([1.0, 1.0])
 
 """
-print x0
-print nvar, ncon, nnzj
-print x_L,  x_U
-print g_L, g_U
-print eval_f(x0)
-print eval_grad_f(x0)
-print eval_g(x0)
+print(x0)
+print(nvar, ncon, nnzj)
+print(x_L,  x_U)
+print(g_L, g_U)
+print(eval_f(x0))
+print(eval_grad_f(x0))
+print(eval_g(x0))
 a =  eval_jac_g(x0, True)
-print "a = ", a[1], a[0]
-print eval_jac_g(x0, False)
-print eval_h(x0, pi0, 1.0, False)
-print eval_h(x0, pi0, 1.0, True)
+print("a = ", a[1], a[0])
+print(eval_jac_g(x0, False))
+print(eval_h(x0, pi0, 1.0, False))
+print(eval_h(x0, pi0, 1.0, True))
 """
 
 """ You can set Ipopt options by calling nlp.num_option, nlp.str_option
@@ -121,27 +121,27 @@ does not explicitly tell you which option is which.  If you are not sure about
 the option's type, just try it in PyIpopt.  If you try to set one type of
 option using the wrong function, Pyipopt will remind you of it. """
 
-print "Going to call solve"
-print x0
+print("Going to call solve")
+print(x0)
 x, zl, zu, constraint_multipliers, obj, status = nlp.solve(x0)
 # import pdb; pdb.set_trace()
 nlp.close()
 
 def print_variable(variable_name, value):
-  for i in xrange(len(value)):
-    print variable_name + "["+str(i)+"] =", value[i]
+  for i in range(len(value)):
+    print(variable_name + "["+str(i)+"] =", value[i])
 
-print
-print "Solution of the primal variables, x"
+print()
+print("Solution of the primal variables, x")
 print_variable("x", x)
-print
-print "Solution of the bound multipliers, z_L and z_U"
+print()
+print("Solution of the bound multipliers, z_L and z_U")
 print_variable("z_L", zl)
 print_variable("z_U", zu)
-print
-print "Solution of the constraint multipliers, lambda"
+print()
+print("Solution of the constraint multipliers, lambda")
 print_variable("lambda", constraint_multipliers)
-print
-print "Objective value"
-print "f(x*) =", obj
+print()
+print("Objective value")
+print("f(x*) =", obj)
 

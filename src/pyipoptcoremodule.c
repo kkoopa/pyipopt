@@ -88,8 +88,6 @@ static char PYIPOPT_LOG_DOC[] = "set_loglevel(level)\n \
         1:  Moderate, logs for ipopt \n \
         2:  Verbose,  logs for both ipopt and pyipopt. \n";
 
-
-
 int user_log_level = TERSE;
 
 /* Object Section */
@@ -191,26 +189,18 @@ PyMethodDef problem_methods[] = {
 	,
 };
 
-PyObject *problem_getattr(PyObject * self, char *attrname)
-{
-	PyObject *result = NULL;
-	result = Py_FindMethod(problem_methods, self, attrname);
-	return result;
-}
-
 /*
  * had to replace PyObject_HEAD_INIT(&PyType_Type) in order to get this to
  * compile on Windows
  */
 PyTypeObject IpoptProblemType = {
-	PyObject_HEAD_INIT(NULL)
-	    0,			/* ob_size */
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"pyipoptcore.Problem",	/* tp_name */
 	sizeof(problem),	/* tp_basicsize */
 	0,			/* tp_itemsize */
 	problem_dealloc,	/* tp_dealloc */
 	0,			/* tp_print */
-	problem_getattr,	/* tp_getattr */
+	0,			/* tp_getattr */
 	0,			/* tp_setattr */
 	0,			/* tp_compare */
 	0,			/* tp_repr */
@@ -225,6 +215,13 @@ PyTypeObject IpoptProblemType = {
 	0,			/* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT,	/* tp_flags */
 	"The IPOPT problem object in python",	/* tp_doc */
+	0,			/* tp_traverse */
+	0,			/* tp_clear */
+	0,                      /* tp_richcompare */
+	0,			/* tp_weaklistoffset */
+	0,			/* tp_iter */
+	0,			/* tp_iternext */
+	problem_methods,	/* tp_methods */
 };
 
 /*
@@ -284,9 +281,13 @@ static PyObject *create(PyObject * obj, PyObject * args)
 
 	int i;
 
+	int C_indexstyle = 0;
+
 	DispatchData *dp = NULL;
 
 	PyObject *retval = NULL;
+
+	IpoptProblem thisnlp;
 
 	/* Init the myowndata field */
 	myowndata.eval_f_python = NULL;
@@ -380,8 +381,8 @@ static PyObject *create(PyObject * obj, PyObject * args)
 		SAFE_FREE(g_U);
 		return retval;
 	}
-	xldata = (double *)xL->data;
-	xudata = (double *)xU->data;
+	xldata = (double *) PyArray_DATA(xL);
+	xudata = (double *) PyArray_DATA(xU);
 	for (i = 0; i < n; i++) {
 		x_L[i] = xldata[i];
 		x_U[i] = xudata[i];
@@ -392,8 +393,8 @@ static PyObject *create(PyObject * obj, PyObject * args)
 	if (!g_L || !g_U)
 		PyErr_NoMemory();
 
-	gldata = (double *)gL->data;
-	gudata = (double *)gU->data;
+	gldata = (double *)PyArray_DATA(gL);
+	gudata = (double *) PyArray_DATA(gU);
 
 	for (i = 0; i < m; i++) {
 		g_L[i] = gldata[i];
@@ -410,8 +411,7 @@ static PyObject *create(PyObject * obj, PyObject * args)
 
 	/* create the Ipopt Problem */
 
-	int C_indexstyle = 0;
-	IpoptProblem thisnlp = CreateIpoptProblem(n,
+	thisnlp = CreateIpoptProblem(n,
 						  x_L, x_U, m, g_L, g_U,
 						  nele_jac, nele_hess,
 						  C_indexstyle,
@@ -467,11 +467,11 @@ PyObject *set_intermediate_callback(PyObject * self, PyObject * args)
 	PyObject *intermediate_callback;
 	problem *temp = (problem *) self;
 	IpoptProblem nlp = (IpoptProblem) (temp->nlp);
-	DispatchData myowndata;
 	DispatchData *bigfield = (DispatchData *) (temp->data);
+//	DispatchData myowndata;
 
 	/* Init the myowndata field */
-	myowndata.eval_intermediate_callback_python = NULL;
+//	myowndata.eval_intermediate_callback_python = NULL;
 
 	if (!PyArg_ParseTuple(args, "O", &intermediate_callback)) {
 		return NULL;
@@ -516,7 +516,7 @@ PyObject *solve(PyObject * self, PyObject * args)
 {
 	enum ApplicationReturnStatus status;	/* Solve return code */
 	int i;
-	int n;
+	npy_intp n;
 
 	/* Return values */
 	problem *temp = (problem *) self;
@@ -538,6 +538,11 @@ PyObject *solve(PyObject * self, PyObject * args)
 	PyObject *myuserdata = NULL;
 
 	Number *newx0 = NULL;
+
+	npy_intp *dim;
+
+	double *xdata;
+	double *return_x_data;
 
 	if (!PyArg_ParseTuple(args, "O!|O", &PyArray_Type, &x0, &myuserdata)) {
 		retval = NULL;
@@ -577,11 +582,11 @@ PyObject *solve(PyObject * self, PyObject * args)
 		/* logger("Can't find eval_h callback function\n"); */
 	}
 	/* allocate space for the initial point and set the values */
-	npy_intp *dim = ((PyArrayObject *) x0)->dimensions;
+	dim = PyArray_DIMS((PyArrayObject *) x0);
 	n = dim[0];
 	dX[0] = n;
 
-	x = (PyArrayObject *) PyArray_SimpleNew(1, dX, PyArray_DOUBLE);
+	x = (PyArrayObject *) PyArray_SimpleNew(1, dX, NPY_DOUBLE);
 	if (!x) {
 		retval = PyErr_NoMemory();
 		/* clean up and return */
@@ -607,29 +612,29 @@ PyObject *solve(PyObject * self, PyObject * args)
 		SAFE_FREE(newx0);
 		return retval;
 	}
-	double *xdata = (double *)x0->data;
+	xdata = (double *) PyArray_DATA(x0);
 	for (i = 0; i < n; i++)
 		newx0[i] = xdata[i];
 
-	/* Allocate multiplier arrays */ 
+	/* Allocate multiplier arrays */
 
-	mL = (PyArrayObject *) PyArray_SimpleNew(1, dX, PyArray_DOUBLE);
-	mU = (PyArrayObject *) PyArray_SimpleNew(1, dX, PyArray_DOUBLE);
+	mL = (PyArrayObject *) PyArray_SimpleNew(1, dX, NPY_DOUBLE);
+	mU = (PyArrayObject *) PyArray_SimpleNew(1, dX, NPY_DOUBLE);
 	dlambda[0] = m;
-	lambda = (PyArrayObject *) PyArray_SimpleNew(1, dlambda, 
-						     PyArray_DOUBLE);
+	lambda = (PyArrayObject *) PyArray_SimpleNew(1, dlambda,
+						     NPY_DOUBLE);
 
 	/* For status code, see IpReturnCodes_inc.h in Ipopt */
 
 	status =
-	  IpoptSolve(nlp, newx0, NULL, &obj, (double *)lambda->data, 
-		     (double *)mL->data, (double *)mU->data, 
+	  IpoptSolve(nlp, newx0, NULL, &obj, (double *) PyArray_DATA(lambda),
+		     (double *) PyArray_DATA(mL), (double *) PyArray_DATA(mU),
 		     (UserDataPtr) bigfield);
-	double *return_x_data = (double *)x->data;
+	return_x_data = (double *) PyArray_DATA(x);
 	for (i = 0; i < n; i++) {
 		return_x_data[i] = newx0[i];
 	}
-	retval = Py_BuildValue("OOOOdi", 
+	retval = Py_BuildValue("OOOOdi",
 			       PyArray_Return(x),
 			       PyArray_Return(mL),
 			       PyArray_Return(mU),
@@ -689,23 +694,40 @@ static PyMethodDef ipoptMethods[] = {
 	{NULL, NULL}
 };
 
-PyMODINIT_FUNC initpyipoptcore(void)
-{
+static struct PyModuleDef moduledef = {
+	PyModuleDef_HEAD_INIT,
+	"pyipoptcore", /* m_name */
+	"A hook between Ipopt and Python",      /* m_doc */
+	-1,                  /* m_size */
+	ipoptMethods,    /* m_methods */
+	NULL,                /* m_reload */
+	NULL,       /* m_traverse */
+	NULL,          /* m_clear */
+	NULL,                /* m_free */
+};
+
+PyMODINIT_FUNC PyInit_pyipoptcore(void) {
+	PyObject *m;
 	/* Finish initialization of the problem type */
-  if (PyType_Ready(&IpoptProblemType) < 0) {
-		return;
-  }
+	if (PyType_Ready(&IpoptProblemType) < 0) {
+		return NULL;
+	}
 
-	Py_InitModule3(
-      "pyipoptcore", ipoptMethods, "A hook between Ipopt and Python");
+	m = PyModule_Create(&moduledef);
 
-  /* Initialize numpy. */
+	if (m == NULL) {
+		return NULL;
+	}
+
+	/* Initialize numpy. */
 	/* A segfault will occur if I use numarray without this.. */
 	import_array();
 	if (PyErr_Occurred()) {
 		Py_FatalError("Unable to initialize module pyipoptcore");
-  }
-	return;
+		return NULL;
+	}
+	return m;
 }
 
 /* End Python Module code section */
+

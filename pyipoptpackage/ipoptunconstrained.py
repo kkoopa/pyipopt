@@ -9,9 +9,9 @@ import functools
 
 import numpy
 
-import pyipoptcore
-from ipoptconst import NLP_LOWER_BOUND_INF
-from ipoptconst import NLP_UPPER_BOUND_INF
+from pyipopt import pyipoptcore
+from pyipopt.ipoptconst import NLP_LOWER_BOUND_INF
+from pyipopt.ipoptconst import NLP_UPPER_BOUND_INF
 
 
 def _eval_g(X, user_data=None):
@@ -140,4 +140,3 @@ def fmin_unconstrained(f, x0, fprime, fhess=None):
     results = nlp.solve(x0)
     nlp.close()
     return results
-
