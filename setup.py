@@ -12,7 +12,7 @@
 # for my linux distribution was buggy,
 # so by the time you read this the bugs have probably been fixed
 # and you will want to specify a different directory here.
-IPOPT_DIR = '/home/kkoopa/dev/Ipopt-3.11.6/build'
+IPOPT_DIR = '/home/kkoopa/dev/Ipopt-3.11.7'
 
 import os
 from distutils.core import setup
@@ -53,7 +53,7 @@ pyipopt_extension = Extension(
             'coinhsl',
             'coinmumps',
             'coinmetis',
-            'lapack','dl','m',
+            'lapack','dl','m', 'gomp'
             ],
         include_dirs=[numpy_include, IPOPT_INC],
         )
